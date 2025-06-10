@@ -1,0 +1,65 @@
+from Retrievers import GenerateEmbeddingRetriever, GenerateTFIDFRetriever, GenerateHeuristicRetriever
+import warnings
+import pandas as pd
+warnings.filterwarnings("ignore")  
+
+def GenerateResponsesForTfIdf():  
+    print("Generating TF-IDF retriever...")
+    retriever = GenerateTFIDFRetriever()  
+    df = pd.read_csv("Data/PreparedData/FrequentistRetriever.csv")  
+
+    print("Processing questions...")
+    for index, row in df.iterrows():  
+        question = row['question']  
+        tfidf_results = retriever.get_relevant_documents(question)  
+          
+        if tfidf_results:  
+            # Considera apenas o primeiro resultado  
+            result = tfidf_results[0]  
+            df.at[index, 'retrievedContext'] = result.page_content  
+  
+    print("Saving updated DataFrame...")
+    df.to_csv("Data/PreparedData/FrequentistRetriever.csv", index=False)
+
+def GenerateResponsesForEmbeddingRetriever():  
+    retriever = GenerateEmbeddingRetriever()  
+    df = pd.read_csv("Data/PreparedData/EmbeddingRetriever.csv")  
+      
+    for index, row in df.iterrows():  
+        question = row['question']  
+        embedding_results = retriever.similarity_search(question, k=1) 
+          
+        if embedding_results:  
+            # Considera apenas o primeiro resultado  
+            result = embedding_results[0]  
+            df.at[index, 'retrievedContext'] = result.page_content  
+  
+    # Salva o dataframe atualizado em um novo arquivo CSV  
+    df.to_csv("Data/PreparedData/EmbeddingRetriever.csv", index=False)  
+    
+def GenerateResponsesForHeuristicRetriever():  
+    retriever = GenerateHeuristicRetriever()  
+  
+    for index, row in retriever.iterrows():  
+        question = row['question']  
+        best_match = None  
+        max_score = 0  
+  
+        # Iteração pelas linhas do próprio DataFrame para encontrar o melhor contexto  
+        for context_index, context_row in retriever.iterrows():  
+            groud_truth_context = context_row['groudTruthContext']  
+            score = sum([1 for word in question.split() if word in groud_truth_context])  
+  
+            if score > max_score:  
+                max_score = score  
+                best_match = groud_truth_context  
+  
+        # Preenchimento da coluna 'retrievedContext' com o contexto mais relevante encontrado  
+        retriever.at[index, 'retrievedContext'] = best_match  
+  
+    retriever.to_csv("Data/PreparedData/HeuristicRetriever.csv", index=False)  
+
+if __name__ == "__main__":
+    #GenerateResponsesForTfIdf()
+    #GenerateResponsesForEmbeddingRetriever()
+    GenerateResponsesForHeuristicRetriever()

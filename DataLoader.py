@@ -3,6 +3,8 @@ import os
 import json  
 import jq  
 from langchain.docstore.document import Document  
+import warnings  
+warnings.filterwarnings("ignore")  
   
 def GetCSV(outputPath):  
     if not os.path.exists(outputPath):  
@@ -25,14 +27,16 @@ def LoadMappings(mappingsPath):
     mappings_df['corpus-id'] = mappings_df['corpus-id'].astype(str)  
     return mappings_df
   
-def LoadContext(sourcePath, outputPath, questionsPath, mappingsPath, numLines=None):  
+def LoadContext(sourcePath, outputPath, questionsPath, mappingsPath, numLines=None, save_df=True):  
+    print("Loading data...")
     df = GetCSV(outputPath)  
     questions_dict = LoadQuestions(questionsPath)  
     mappings_df = LoadMappings(mappingsPath)  
     documents = []  
     jq_schema = jq.compile("{_id: ._id, text: .text}")  
     valid_lines = 0  
-      
+    
+    print("Processing files...")
     with open(sourcePath, 'r', encoding='utf-8') as file:  
         for line in file:  
             if numLines is not None and valid_lines >= numLines:  
@@ -43,7 +47,8 @@ def LoadContext(sourcePath, outputPath, questionsPath, mappingsPath, numLines=No
 
             corpus_id = str(parsed_document['_id'])
             query_id_row = mappings_df.loc[mappings_df['corpus-id'] == corpus_id, 'query-id']
-            if not query_id_row.empty:  
+
+            if not query_id_row.empty and save_df:  
                 query_id = query_id_row.values[0]  
                 question = questions_dict.get(str(query_id), None)  
   
@@ -55,7 +60,9 @@ def LoadContext(sourcePath, outputPath, questionsPath, mappingsPath, numLines=No
             doc = Document(page_content=parsed_document['text'], metadata={"_id": parsed_document['_id']})  
             documents.append(doc)  
       
-    df.to_csv(outputPath, index=False)  
+    if save_df:
+        df.to_csv(outputPath, index=False)
+    print("Data processing complete.")  
     return documents  
   
   
