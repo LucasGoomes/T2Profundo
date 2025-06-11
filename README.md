@@ -1,6 +1,7 @@
 install depencies
 generate evaluantions csv running DataLoader.py - it will populate id,groundthruthContext text and question
 run RetrieveContext to retrieve the context based on the question and populate retrievedContext on the csv
+run LLM.py to generate the responses based on the context retrieved by RetrieveContext
 
 ### Slide: Estratégias Implementadas  
   
